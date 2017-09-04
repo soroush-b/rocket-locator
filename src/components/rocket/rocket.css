@@ -1,0 +1,26 @@
+
+li.single-rocket {
+    border-bottom: 1px solid #d8d6d6;
+    margin-bottom: 10px;
+}
+li.single-rocket div{
+    display: inline-block;
+}
+.img-section img{
+    width:100%;
+}
+.img-section{
+    width:40%;
+}
+.info-section{
+    width:60%;
+    text-align: center;
+    font-size: 12px;
+}
+img.locator{
+    width:20px;
+    cursor: pointer;
+}
+img.locator:hover{
+    opacity: 0.8;
+}
