@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import logo from './rocket.svg';
 import Map from './map/Map';
-import {GoogleApiWrapper} from 'google-maps-react';
 import Rockets from './rocket_list/rocket_list';
 import Request from 'superagent';
 import './App.css';
