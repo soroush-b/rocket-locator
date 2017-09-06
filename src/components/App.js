@@ -11,7 +11,8 @@ class App extends Component {
         this.state = {
             pads:[],
             rockets:[],
-            selectedPads:[]
+            selectedPads:[],
+            loading:false
         }
         this.showInMap =  this.showInMap.bind(this);
         this.searchRocket = this.searchRocket.bind(this);
@@ -20,6 +21,7 @@ class App extends Component {
         this.getData();
     }
     getData(term){
+        this.setState({loading:true});
         console.log("get data requests");
         const padsUrl = 'https://launchlibrary.net/1.2/pad';
         const rocketsUrl = `https://launchlibrary.net/1.2/rocket?mode=verbose${term?'&name='+term:''}`;
@@ -34,7 +36,7 @@ class App extends Component {
             }
             let uniquePads = pads.filter((v, i, a) => a.indexOf(v) === i);
             let rocketsPadUrl = padsUrl+"?mode=summary&id="+uniquePads.join('&id=');
-            this.setState({rockets});
+            this.setState({rockets,loading:false});
             return Request.get(rocketsPadUrl);
         }).then(results=>{
             let pads = results.body.pads;
@@ -46,6 +48,7 @@ class App extends Component {
         this.setState({selectedPads})
     }
     searchRocket(e){
+        this.setState({loading:true});
        let term = e.target.value;
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
@@ -53,7 +56,7 @@ class App extends Component {
         }
         this.searchTimeout = setTimeout(() => {
             this.getData(term);
-        }, 1000);
+        }, 500);
 
     }
     render() {
@@ -78,6 +81,7 @@ class App extends Component {
                             <Rockets
                                 rockets={this.state.rockets}
                                 showInMap={this.showInMap}
+                                loading={this.state.loading}
                             />
                         </div>
                         <div className="locator-map">
