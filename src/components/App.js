@@ -20,12 +20,33 @@ class App extends Component {
     componentWillMount(){
         this.getData();
     }
-    getData(term){
+    async getData(term){
         this.setState({loading:true});
         console.log("get data requests");
         const padsUrl = 'https://launchlibrary.net/1.2/pad';
         const rocketsUrl = `https://launchlibrary.net/1.2/rocket?mode=verbose${term?'&name='+term:''}`;
-        Request.get(rocketsUrl).then(results=>{
+
+        // call for rockets
+        const rocketsResults = await Request.get(rocketsUrl);
+        let rockets = rocketsResults.body.rockets;
+        let pads_array=[];
+        for (let i in rockets){
+            let rocket= rockets[i];
+            if(rocket.defaultPads.length){
+                pads_array = [...pads_array,...rocket.defaultPads.split(",")]
+            }
+        }
+        let uniquePads = pads_array.filter((v, i, a) => a.indexOf(v) === i);
+        let rocketsPadUrl = padsUrl+"?mode=summary&id="+uniquePads.join('&id=');
+        this.setState({rockets,loading:false});
+
+        // call for rocket pads
+        const padsResults = await Request.get(rocketsPadUrl);
+        let pads = padsResults.body.pads;
+        this.setState({pads});
+
+        // Promise Way
+        /*Request.get(rocketsUrl).then(results=>{
             let rockets = results.body.rockets;
             let pads=[];
             for (let i in rockets){
@@ -41,7 +62,7 @@ class App extends Component {
         }).then(results=>{
             let pads = results.body.pads;
             this.setState({pads});
-        });
+        });*/
     }
     showInMap(pads){
         let selectedPads = pads.split(",");
