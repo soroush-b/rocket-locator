@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import logo from './rocket.svg';
 import Map from './map/Map';
+import Marker from './marker/Marker';
 import Rockets from './rocket_list/rocket_list';
 import Request from 'superagent';
 import './App.css';
@@ -22,29 +23,34 @@ class App extends Component {
     }
     async getData(term){
         this.setState({loading:true});
-        console.log("get data requests");
-        const padsUrl = 'https://launchlibrary.net/1.2/pad';
-        const rocketsUrl = `https://launchlibrary.net/1.2/rocket?mode=verbose${term?'&name='+term:''}`;
+        try {
+            console.log("get data requests");
+            const padsUrl = 'https://launchlibrary.net/1.2/pad';
+            const rocketsUrl = `https://launchlibrary.net/1.2/rocket?mode=verbose${term ? '&name=' + term : ''}`;
 
-        // call for rockets
-        const rocketsResults = await Request.get(rocketsUrl);
-        let rockets = rocketsResults.body.rockets;
-        let pads_array=[];
-        for (let i in rockets){
-            let rocket= rockets[i];
-            if(rocket.defaultPads.length){
-                pads_array = [...pads_array,...rocket.defaultPads.split(",")]
+            // call for rockets
+            const rocketsResults = await Request.get(rocketsUrl);
+            let rockets = rocketsResults.body.rockets;
+            let pads_array = [];
+            for (let i in rockets) {
+                let rocket = rockets[i];
+                if (rocket.defaultPads.length) {
+                    pads_array = [...pads_array, ...rocket.defaultPads.split(",")]
+                }
             }
+            let uniquePads = pads_array.filter((v, i, a) => a.indexOf(v) === i);
+            let rocketsPadUrl = padsUrl + "?mode=summary&id=" + uniquePads.join('&id=');
+            this.setState({rockets, loading: false});
+
+            // call for rocket pads
+            const padsResults = await Request.get(rocketsPadUrl);
+            let pads = padsResults.body.pads;
+            this.setState({pads});
+            console.log(pads)
+        }catch(e){
+            this.setState({loading: false});
+            console.error(e);
         }
-        let uniquePads = pads_array.filter((v, i, a) => a.indexOf(v) === i);
-        let rocketsPadUrl = padsUrl+"?mode=summary&id="+uniquePads.join('&id=');
-        this.setState({rockets,loading:false});
-
-        // call for rocket pads
-        const padsResults = await Request.get(rocketsPadUrl);
-        let pads = padsResults.body.pads;
-        this.setState({pads});
-
         // Promise Way
         /*Request.get(rocketsUrl).then(results=>{
             let rockets = results.body.rockets;
@@ -66,7 +72,8 @@ class App extends Component {
     }
     showInMap(pads){
         let selectedPads = pads.split(",");
-        this.setState({selectedPads})
+        this.setState({selectedPads});
+        console.log(selectedPads);
     }
     searchRocket(e){
         this.setState({loading:true});
@@ -106,10 +113,20 @@ class App extends Component {
                             />
                         </div>
                         <div className="locator-map">
-                            <Map google={this.props.google}
-                                 pads={this.state.pads}
-                                 selectedPads={this.state.selectedPads}
-                            />
+                            <Map google={this.props.google} boundPads={this.state.selectedPads} >
+                                {this.state.pads.map(marker=>{
+                                    let selected = this.state.selectedPads.includes(""+marker.id);
+                                    return (
+                                        <Marker
+                                            key={marker.id}
+                                            marker={marker}
+                                            position={{latitude:marker.latitude,longitude:marker.longitude}}
+                                            selected ={selected}
+                                            showInMap={this.showInMap}
+                                        />
+                                    )
+                                })}
+                            </Map>
                         </div>
                     </div>
                 </section>
@@ -123,7 +140,4 @@ class App extends Component {
     }
 }
 
-// export default GoogleApiWrapper({
-//     apiKey: 'AIzaSyAMA_8C_xjC3dx2350V9GuL9nrkMMj4aG4'
-// })(App)
 export default App;

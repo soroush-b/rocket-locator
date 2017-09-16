@@ -1,104 +1,64 @@
 import React, {Component,propTypes} from 'react';
-import Icon from './marker.svg';
+import {loadJS} from '../helper/helper';
+
 export default class Map extends Component {
     constructor(props) {
         super(props);
-
         const {lat, lng} = this.props.center;
         this.state = {
             currentLocation: {
                 lat: lat,
                 lng: lng
             }
-        }
-        this.lastOpenInfoWindow={};
-        this.marker={};
-        this.infowindow={};
+        };
     }
     componentDidMount() {
-        if (navigator && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const coords = pos.coords;
-                this.setState({
-                    currentLocation: {
-                        lat: coords.latitude,
-                        lng: coords.longitude
-                    }
-                })
-            })
-        }
-        this.loadMap();
+        window.initMap = this.initMap.bind(this);
+        // if (navigator && navigator.geolocation) {
+        //     navigator.geolocation.getCurrentPosition((pos) => {
+        //         console.log("11111111111111")
+        //         const coords = pos.coords;
+        //         this.setState({
+        //             currentLocation: {
+        //                 lat: coords.latitude,
+        //                 lng: coords.longitude
+        //             }
+        //         })
+        //     })
+        // }
+        // Asynchronously load the Google Maps script, passing in the callback reference
+        loadJS('https://maps.googleapis.com/maps/api/js?key=AIzaSyAMA_8C_xjC3dx2350V9GuL9nrkMMj4aG4&callback=initMap')
     }
-
-    componentDidUpdate(prevProps, prevState) {
-        if (prevProps.google !== this.google) {
-            this.loadMap();
-        }
-        if (prevState.currentLocation !== this.state.currentLocation) {
-            this.recenterMap();
-        }
-        if (prevState.lastOpenInfoWindow !== this.state.currentLocation) {
-            this.recenterMap();
-        }
-        if (prevProps.selectedPads !== this.props.selectedPads) {
-            this.props.selectedPads.forEach(pad=>this.openInfoWindow(pad))
-        }
-
-    }
-    shouldComponentUpdate(nextProps, nextState){
-            return nextProps.selectedPads.length ===0 || !(JSON.stringify(nextProps.selectedPads) == JSON.stringify(this.props.selectedPads));
-    }
-    recenterMap() {
-        const map = this.map;
-        const curr = this.state.currentLocation;
-        const maps = this.google.maps;
-
-        if (map) {
-            let center = new maps.LatLng(curr.lat, curr.lng);
-            map.panTo(center)
-        }
-    }
-    addMarker(pad){
-        const map = this.map;
-        const maps = this.google.maps;
-        let position = new maps.LatLng(pad.latitude, pad.longitude);
-        const markerConfig = {
-            map: map,
-            position: position,
-            animation: maps.Animation.DROP,
-            icon:Icon
-        };
-        this.marker[pad.id] = new maps.Marker(markerConfig);
-        this.addInfoWindow(pad.name,pad.id);
-    }
-    addInfoWindow(content,padID) {
-        let marker = this.marker[padID];
-        let maps = this.google.maps;
-        this.infowindow[padID] = new maps.InfoWindow({
-            content: (`<h4>${content}</h4>`),
-            maxWidth: 100
-        });
-        marker.addListener('click', this.openInfoWindow.bind(this,padID));
-    }
-    openInfoWindow(padID){
-        if(!this.marker[padID] || !this.infowindow[padID]){return}
-        let marker = this.marker[padID];
-        let iw = this.infowindow[padID];
-        let map = this.map;
-        iw.open(map, marker);
-    }
-    loadMap() {
-        // google is available
+    initMap(){
         this.google = window.google;
-
         const mapConfig = Object.assign({}, {
             center: this.state.currentLocation,
             zoom: this.props.zoom
         });
-        this.map = new this.google.maps.Map(this.refs.map, mapConfig);
-        this.props.pads.forEach(marker=>this.addMarker(marker));
+        this.map    = new this.google.maps.Map(this.refs.map, mapConfig);
+        this.bounds  = new this.google.maps.LatLngBounds();
+    }
+    componentDidUpdate(prevProps) {
+        if (prevProps.boundPads !== this.props.boundPads) {
+            this.bounds  = new this .google.maps.LatLngBounds();
+        }
     }
 
+    renderMarkers(){
+        const {children} = this.props;
+        if (!children) return;
+
+        const map = this.map;
+        const bounds = this.bounds;
+        const maps = (this.google ||{}).maps;
+        return React.Children.map(children, c => {
+            return React.cloneElement(c, {
+                map,
+                maps,
+                bounds
+            });
+        })
+    }
     render() {
         const mapStyle = {
             width: '100%',
@@ -107,16 +67,15 @@ export default class Map extends Component {
         return (
             <div ref='map' style={mapStyle}>
                 Loading map...
+                {this.renderMarkers()}
             </div>
         )
     }
 }
 Map.propTypes = {
-    google: React.PropTypes.object,
-    zoom: React.PropTypes.number,
-    center: React.PropTypes.object,
-    pads: React.PropTypes.array,
-    selectedPads: React.PropTypes.array,
+    // google: React.PropTypes.object,
+    // zoom: React.PropTypes.number,
+    // center: React.PropTypes.object,
 };
 Map.defaultProps = {
     zoom: 8,
@@ -125,7 +84,4 @@ Map.defaultProps = {
         lat: 34.634363,
         lng: -120.613017
     },
-    selectedPads:[],
-    pads:[]
-
 };
